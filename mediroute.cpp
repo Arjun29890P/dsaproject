@@ -4,6 +4,7 @@
 #include <string>
 #include <climits>
 #include <algorithm>
+#include <cstdlib>
 using namespace std;
 
 // Stores emergency details
@@ -67,6 +68,45 @@ private:
     queue<int> completedCases;
 
     int emergencyCounter;
+
+    // Read one full line safely (trims spaces and \r). Exits if input is closed.
+    string readLine()
+    {
+        string line;
+
+        if (!getline(cin, line))
+            exit(0);
+
+        size_t start = line.find_first_not_of(" \t\r\n");
+        if (start == string::npos)
+            return "";
+
+        size_t end = line.find_last_not_of(" \t\r\n");
+        return line.substr(start, end - start + 1);
+    }
+
+    // Read an integer safely; keeps asking until a valid number is typed
+    int readInt()
+    {
+        while (true)
+        {
+            string line = readLine();
+
+            try
+            {
+                size_t pos;
+                int value = stoi(line, &pos);
+
+                if (pos == line.size())
+                    return value;
+            }
+            catch (...)
+            {
+            }
+
+            cout << "Invalid input. Please enter a number: ";
+        }
+    }
 
 public:
     // Constructor
@@ -232,65 +272,51 @@ public:
     // Register a new emergency
     void registerEmergency()
     {
-        Emergency e;
+        string name, loc, cond;
+        int sev;
 
-        e.id = emergencyCounter++;
+        cout << "\n--- REGISTER EMERGENCY ---\n";
+        cout << "Enter Patient Name: ";
+        name = readLine();
 
-        cout << "\n========== REGISTER EMERGENCY ==========\n";
-
-        cout << "Patient Name: ";
-        cin.ignore();
-        getline(cin, e.patientName);
-
-        displayLocations();
-
-        int choice;
-
-        cout << "Enter patient location: ";
-        cin >> choice;
-
-        if (choice < 1 || choice > locations.size())
+        // Choose location by number (no typing errors possible)
+        cout << "\nSelect Location:\n";
+        for (int i = 0; i < locations.size(); i++)
         {
-            cout << "Invalid location.\n";
-            return;
+            cout << "  " << i + 1 << ". " << locations[i] << endl;
         }
 
-        e.location = locations[choice - 1];
-
-        cout << "\nEnter patient condition: ";
-        cin.ignore();
-        getline(cin, e.condition);
-
-        cout << "\nSeverity Level:\n";
-        cout << "1. Critical\n";
-        cout << "2. Serious\n";
-        cout << "3. Moderate\n";
-
-        cout << "Enter severity: ";
-        cin >> e.severity;
-
-        if (e.severity < 1 || e.severity > 3)
+        int locChoice;
+        while (true)
         {
-            cout << "Invalid severity.\n";
-            return;
+            cout << "Enter Location Number (1-" << locations.size() << "): ";
+            locChoice = readInt();
+
+            if (locChoice >= 1 && locChoice <= (int)locations.size())
+                break;
+
+            cout << "[ERROR] Invalid location number.\n";
         }
 
-        e.assigned = false;
+        loc = locations[locChoice - 1];
 
-        // Add emergency to priority queue
-        emergencyQueue.push(e);
+        cout << "Enter Condition Description: ";
+        cond = readLine();
 
-        cout << "\nEmergency registered successfully!";
-        cout << "\nEmergency ID: " << e.id;
+        while (true)
+        {
+            cout << "Enter Severity Score (1 = Critical, 2 = Serious, 3 = Moderate): ";
+            sev = readInt();
 
-        if (e.severity == 1)
-            cout << "\nPriority: CRITICAL";
-        else if (e.severity == 2)
-            cout << "\nPriority: SERIOUS";
-        else
-            cout << "\nPriority: MODERATE";
+            if (sev >= 1 && sev <= 3)
+                break;
 
-        cout << "\n";
+            cout << "[ERROR] Severity must be 1, 2 or 3.\n";
+        }
+
+        Emergency newEmerg = {emergencyCounter++, name, loc, sev, cond, false};
+        emergencyQueue.push(newEmerg);
+        cout << "[SUCCESS] Emergency registered for " << name << " at " << loc << " with Severity: " << sev << "\n";
     }
 
     // Find the nearest available ambulance
@@ -410,10 +436,8 @@ public:
     // Make ambulance available again
     void completeTrip()
     {
-        int ambulanceID;
-
         cout << "\nEnter ambulance ID: ";
-        cin >> ambulanceID;
+        int ambulanceID = readInt();
 
         for (Ambulance &ambulance : ambulances)
         {
@@ -517,7 +541,7 @@ public:
             cout << "\n8. Exit";
 
             cout << "\n\nEnter your choice: ";
-            cin >> choice;
+            choice = readInt();
 
             switch (choice)
             {
